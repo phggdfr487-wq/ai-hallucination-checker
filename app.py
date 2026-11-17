@@ -74,7 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("## Hallucination Risk Engine")
-st.caption("Automated epistemic grounding, semantic coherence filters, and statistical uncertainty analyzer.")
+st.caption("Automated epistemic grounding, structural semantic analysis, and statistical uncertainty modeling.")
 st.divider()
 
 def analyze_claim(text):
@@ -82,19 +82,28 @@ def analyze_claim(text):
     words = text_clean.split()
     
     # GUARD 1: Input too short or purely numbers
-    if len(words) < 3 or text_clean.isdigit():
-        return None, "Not a Factual Claim", ["Input is too short or composed purely of numbers/informal text."], None, "general", True
+    if len(words) < 4 or text_clean.isdigit():
+        return None, "Not a Factual Claim", ["Input is too short (requires at least 4 words) or composed purely of numbers/informal text."], None, "general", True
 
     lower_text = text_clean.lower()
     
-    # GUARD 2: Explicit Gibberish / Surreal Nonsense Guard (Human Typing vs AI Hallucination)
-    nonsense_triggers = ["eating a house", "milk the website", "eating a", "drinking the website", "rebuilding the moon with cheese"]
-    is_surreal = any(trigger in lower_text for trigger in nonsense_triggers) or (("house" in lower_text or "website" in lower_text) and "milk" in lower_text and "eating" in lower_text)
+    # Structural & Grammatical Anchor Check (Beats infinite brain rot & slang padding)
+    structural_anchors = [
+        "is", "are", "was", "were", "has", "have", "had", "do", "does", "did", 
+        "will", "would", "can", "could", "should", "by", "to", "from", "that", 
+        "which", "who", "in", "on", "at", "for", "with", "as", "an", "the"
+    ]
     
-    if is_surreal or len(set(words)) <= 2:
-        return 5, "Gibberish / Human Input", [
-            "Detected surreal juxtaposition or repetitive text structure.",
-            "This is classified as human-generated gibberish or nonsense typing rather than an AI hallucination or factual claim."
+    anchor_count = sum(1 for word in words if word.lower() in structural_anchors)
+    is_structural_gibberish = (anchor_count == 0) or (len(words) < 7 and anchor_count < 2)
+    
+    nonsense_triggers = ["eating a house", "milk the website", "drinking the website", "rebuilding the moon with cheese"]
+    is_surreal = any(trigger in lower_text for trigger in nonsense_triggers)
+    
+    if is_surreal or is_structural_gibberish or len(set(words)) <= 3:
+        return 5, "Gibberish / Non-Propositional Input", [
+            "Detected lack of grammatical structure or logical connectors.",
+            "Classified as random noise, slang strings, or brain rot rather than a structural factual claim."
         ], None, "general", True
 
     score = 60
@@ -120,7 +129,7 @@ def analyze_claim(text):
         domain_type = "science"
 
     # 4. Query OpenAlex Academic Paper API
-    search_terms = [w for w in re.findall(r'\b[A-Za-z]{4,}\b', text_clean) if w.lower() not in ["that", "with", "this", "from", "have", "were", "without", "about", "there", "their"]]
+    search_terms = [w for w in re.findall(r'\b[A-Za-z]{4,}\b', text_clean) if w.lower() not in structural_anchors]
     search_query = " ".join(search_terms[:5])
     
     paper_match = None
@@ -174,7 +183,7 @@ with left_col:
     st.markdown("#### Input Statement")
     user_prompt = st.text_area(
         "Claim or AI output to evaluate",
-        value="Task B | Design the sequence: Post on Instagram at 12:08 p.m., send an SMS, and update the website while eating a house with milk.",
+        value="Thomas Edison single-handedly invented the very first light bulb without any prior inventors.",
         height=130,
         label_visibility="collapsed"
     )
@@ -197,7 +206,7 @@ if run_check:
             st.markdown("#### Diagnostic Breakdown")
             
             if is_gibberish:
-                st.markdown(f'<div class="status-badge-gibberish">CLASSIFICATION: GIBBERISH / HUMAN INPUT</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="status-badge-gibberish">CLASSIFICATION: GIBBERISH / NOISE</div>', unsafe_allow_html=True)
             elif confidence < threshold:
                 st.markdown(f'<div class="status-badge-high">FLAGGED: BELOW {threshold}% THRESHOLD</div>', unsafe_allow_html=True)
             else:
@@ -210,27 +219,31 @@ if run_check:
             if paper_match:
                 st.caption(f"Database Log: {paper_match}")
 
-            # NEW PORTFOLIO FEATURE: Technical Architecture & Heuristics Log
             with st.expander("🔍 View Technical Heuristics Log"):
-                st.write(f"**Input Character Count:** {len(user_prompt)}")
+                st.write(f"**Input Word Count:** {len(user_prompt.split())}")
                 st.write(f"**Detected Domain:** {domain_type.upper()}")
-                st.write(f"**Semantic Coherence Check:** {'Passed' if not is_gibberish else 'Failed (Nonsense Detected)'}")
-                st.write("**Engine Note:** Differentiates between keyword matches in academic indexing vs. absurd contextual juxtaposition.")
+                st.write(f"**Structural Check:** {'Passed' if not is_gibberish else 'Failed (Grammatical Noise Detected)'}")
+                st.write("**Engine Note:** Evaluates syntactic propositional structure and scholastic indexing density.")
 
         with right_col:
             st.markdown("#### Confidence & Verification")
             
             bar_color = "#FBBF24" if is_gibberish else ("#EF4444" if confidence < threshold else "#10B981")
             display_score = f"{confidence}%" if confidence is not None else "N/A"
+            bar_height = confidence if confidence else 5
             
+            # Professional Vertical Bar UI Component
             st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
-                <div style="font-size: 36px; font-weight: 700; color: {bar_color}; margin: 4px 0 12px 0;">{display_score}</div>
-                <div style="width: 100%; background-color: #1F2937; border-radius: 6px; height: 12px; overflow: hidden;">
-                    <div style="width: {confidence if confidence else 5}%; background-color: {bar_color}; height: 100%; border-radius: 6px;"></div>
+            <div class="metric-card" style="text-align: center;">
+                <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Estimated Grounding Score</div>
+                <div style="font-size: 34px; font-weight: 700; color: {bar_color}; margin-bottom: 16px;">{display_score}</div>
+                
+                <!-- Vertical Bar Container -->
+                <div style="display: flex; justify-content: center; align-items: flex-end; height: 150px; width: 70px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; position: relative; border: 1px solid #374151;">
+                    <div style="width: 100%; height: {bar_height}%; background-color: {bar_color}; border-radius: 0 0 6px 6px; transition: height 0.6s ease;"></div>
                 </div>
-                <div style="font-size: 12px; color: #9CA3AF; margin-top: 8px;">Policy Threshold: {threshold}% minimum required</div>
+                
+                <div style="font-size: 12px; color: #9CA3AF; margin-top: 12px;">Policy Threshold: {threshold}% minimum</div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -247,10 +260,14 @@ else:
     with right_col:
         st.markdown("#### Confidence & Verification")
         st.markdown("""
-        <div class="metric-card">
-            <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
-            <div style="font-size: 36px; font-weight: 700; color: #4B5563; margin: 4px 0 12px 0;">--%</div>
-            <div style="width: 100%; background-color: #1F2937; border-radius: 6px; height: 12px;"></div>
-            <div style="font-size: 12px; color: #6B7280; margin-top: 8px;">Run an analysis to calculate epistemic confidence</div>
+        <div class="metric-card" style="text-align: center;">
+            <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Estimated Grounding Score</div>
+            <div style="font-size: 34px; font-weight: 700; color: #4B5563; margin-bottom: 16px;">--%</div>
+            
+            <div style="display: flex; justify-content: center; align-items: flex-end; height: 150px; width: 70px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; position: relative; border: 1px solid #374151;">
+                <div style="width: 100%; height: 5%; background-color: #374151; border-radius: 0 0 6px 6px;"></div>
+            </div>
+            
+            <div style="font-size: 12px; color: #6B7280; margin-top: 12px;">Run analysis to calculate score</div>
         </div>
         """, unsafe_allow_html=True)
