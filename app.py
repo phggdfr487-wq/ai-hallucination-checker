@@ -97,7 +97,7 @@ def analyze_claim(text):
     anchor_count = sum(1 for word in words if word.lower() in structural_anchors)
     is_structural_gibberish = (anchor_count == 0) or (len(words) < 7 and anchor_count < 2)
     
-    # Comprehensive Middle-Injection & Brain Rot Scanner (Scans whole sentence)
+    # Comprehensive Middle-Injection & Brain Rot Scanner
     brain_rot_words = [
         "sigma", "rizz", "skibidi", "gyatt", "fanum", "oi", "tralaleo", 
         "ohio", "mewing", "edging", "bop", "blud", "gng", "demure", "cooked"
@@ -239,24 +239,19 @@ if run_check:
         with right_col:
             st.markdown("#### Confidence & Verification")
             
-            bar_color = "#FBBF24" if is_gibberish else ("#EF4444" if confidence < threshold else "#10B981")
             display_score = f"{confidence}%" if confidence is not None else "N/A"
-            bar_height = confidence if confidence else 5
+            numeric_score = confidence if confidence is not None else 0
             
-            # Bulletproof Absolute-Positioned Vertical Bar UI Component
             st.markdown(f"""
-            <div class="metric-card" style="text-align: center;">
-                <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Estimated Grounding Score</div>
-                <div style="font-size: 34px; font-weight: 700; color: {bar_color}; margin-bottom: 16px;">{display_score}</div>
-                
-                <!-- Vertical Bar Container -->
-                <div style="position: relative; height: 150px; width: 65px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; border: 1px solid #374151;">
-                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: {bar_height}%; background-color: {bar_color}; border-radius: 0 0 7px 7px; transition: height 0.6s ease;"></div>
-                </div>
-                
-                <div style="font-size: 12px; color: #9CA3AF; margin-top: 12px;">Policy Threshold: {threshold}% minimum</div>
+            <div class="metric-card">
+                <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
+                <div style="font-size: 36px; font-weight: 700; color: {'#FBBF24' if is_gibberish else ('#EF4444' if confidence < threshold else '#10B981')}; margin: 4px 0 8px 0;">{display_score}</div>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Bulletproof Native Streamlit Progress Bar
+            st.progress(numeric_score / 100)
+            st.caption(f"Policy Threshold: {threshold}% minimum required")
             
             st.markdown("#### Recommended Verification Sources")
             steps = get_verification_steps(domain_type)
@@ -271,14 +266,10 @@ else:
     with right_col:
         st.markdown("#### Confidence & Verification")
         st.markdown("""
-        <div class="metric-card" style="text-align: center;">
-            <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Estimated Grounding Score</div>
-            <div style="font-size: 34px; font-weight: 700; color: #4B5563; margin-bottom: 16px;">--%</div>
-            
-            <div style="position: relative; height: 150px; width: 65px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; border: 1px solid #374151;">
-                <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 5%; background-color: #374151; border-radius: 0 0 7px 7px;"></div>
-            </div>
-            
-            <div style="font-size: 12px; color: #6B7280; margin-top: 12px;">Run analysis to calculate score</div>
+        <div class="metric-card">
+            <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
+            <div style="font-size: 36px; font-weight: 700; color: #4B5563; margin: 4px 0 8px 0;">--%</div>
         </div>
         """, unsafe_allow_html=True)
+        st.progress(0.0)
+        st.caption("Run an analysis to calculate score")
