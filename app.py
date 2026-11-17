@@ -243,15 +243,15 @@ if run_check:
             display_score = f"{confidence}%" if confidence is not None else "N/A"
             bar_height = confidence if confidence else 5
             
-            # Professional Vertical Bar UI Component
+            # Bulletproof Absolute-Positioned Vertical Bar UI Component
             st.markdown(f"""
             <div class="metric-card" style="text-align: center;">
                 <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Estimated Grounding Score</div>
                 <div style="font-size: 34px; font-weight: 700; color: {bar_color}; margin-bottom: 16px;">{display_score}</div>
                 
                 <!-- Vertical Bar Container -->
-                <div style="display: flex; justify-content: center; align-items: flex-end; height: 150px; width: 70px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; position: relative; border: 1px solid #374151;">
-                    <div style="width: 100%; height: {bar_height}%; background-color: {bar_color}; border-radius: 0 0 6px 6px; transition: height 0.6s ease;"></div>
+                <div style="position: relative; height: 150px; width: 65px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; border: 1px solid #374151;">
+                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: {bar_height}%; background-color: {bar_color}; border-radius: 0 0 7px 7px; transition: height 0.6s ease;"></div>
                 </div>
                 
                 <div style="font-size: 12px; color: #9CA3AF; margin-top: 12px;">Policy Threshold: {threshold}% minimum</div>
@@ -275,8 +275,8 @@ else:
             <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Estimated Grounding Score</div>
             <div style="font-size: 34px; font-weight: 700; color: #4B5563; margin-bottom: 16px;">--%</div>
             
-            <div style="display: flex; justify-content: center; align-items: flex-end; height: 150px; width: 70px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; position: relative; border: 1px solid #374151;">
-                <div style="width: 100%; height: 5%; background-color: #374151; border-radius: 0 0 6px 6px;"></div>
+            <div style="position: relative; height: 150px; width: 65px; background-color: #1F2937; border-radius: 8px; margin: 0 auto; overflow: hidden; border: 1px solid #374151;">
+                <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 5%; background-color: #374151; border-radius: 0 0 7px 7px;"></div>
             </div>
             
             <div style="font-size: 12px; color: #6B7280; margin-top: 12px;">Run analysis to calculate score</div>
