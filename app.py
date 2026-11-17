@@ -87,7 +87,7 @@ def analyze_claim(text):
 
     lower_text = text_clean.lower()
     
-    # Structural & Grammatical Anchor Check (Beats infinite brain rot & slang padding)
+    # Structural & Grammatical Anchor Check
     structural_anchors = [
         "is", "are", "was", "were", "has", "have", "had", "do", "does", "did", 
         "will", "would", "can", "could", "should", "by", "to", "from", "that", 
@@ -97,13 +97,24 @@ def analyze_claim(text):
     anchor_count = sum(1 for word in words if word.lower() in structural_anchors)
     is_structural_gibberish = (anchor_count == 0) or (len(words) < 7 and anchor_count < 2)
     
+    # Comprehensive Middle-Injection & Brain Rot Scanner (Scans whole sentence)
+    brain_rot_words = [
+        "sigma", "rizz", "skibidi", "gyatt", "fanum", "oi", "tralaleo", 
+        "ohio", "mewing", "edging", "bop", "blud", "gng", "demure", "cooked"
+    ]
+    slang_matches = sum(1 for word in words if word.lower() in brain_rot_words)
+    has_middle_slang = slang_matches > 0
+    
     nonsense_triggers = ["eating a house", "milk the website", "drinking the website", "rebuilding the moon with cheese"]
     is_surreal = any(trigger in lower_text for trigger in nonsense_triggers)
     
-    if is_surreal or is_structural_gibberish or len(set(words)) <= 3:
-        return 5, "Gibberish / Non-Propositional Input", [
-            "Detected lack of grammatical structure or logical connectors.",
-            "Classified as random noise, slang strings, or brain rot rather than a structural factual claim."
+    dangling_endings = ["of", "the", "a", "an", "in", "on", "by", "with", "to", "from"]
+    ends_with_dangling = words[-1].lower() in dangling_endings or (len(words) >= 5 and words[-2].lower() in dangling_endings and len(words[-1]) <= 3)
+    
+    if is_surreal or is_structural_gibberish or has_middle_slang or ends_with_dangling or len(set(words)) <= 3:
+        return 5, "Gibberish / Hybrid Noise Injection", [
+            "Detected slang, brain rot terminology, or structural anomalies embedded in the text.",
+            "Classified as adversarial input rather than a valid factual claim."
         ], None, "general", True
 
     score = 60
@@ -129,7 +140,7 @@ def analyze_claim(text):
         domain_type = "science"
 
     # 4. Query OpenAlex Academic Paper API
-    search_terms = [w for w in re.findall(r'\b[A-Za-z]{4,}\b', text_clean) if w.lower() not in structural_anchors]
+    search_terms = [w for w in re.findall(r'\b[A-Za-z]{4,}\b', text_clean) if w.lower() not in structural_anchors and w.lower() not in brain_rot_words]
     search_query = " ".join(search_terms[:5])
     
     paper_match = None
@@ -222,7 +233,7 @@ if run_check:
             with st.expander("🔍 View Technical Heuristics Log"):
                 st.write(f"**Input Word Count:** {len(user_prompt.split())}")
                 st.write(f"**Detected Domain:** {domain_type.upper()}")
-                st.write(f"**Structural Check:** {'Passed' if not is_gibberish else 'Failed (Grammatical Noise Detected)'}")
+                st.write(f"**Structural Check:** {'Passed' if not is_gibberish else 'Failed (Grammatical Noise / Slang Detected)'}")
                 st.write("**Engine Note:** Evaluates syntactic propositional structure and scholastic indexing density.")
 
         with right_col:
