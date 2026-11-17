@@ -9,7 +9,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Subtle custom CSS for a clean, modern research-lab look
+# Custom CSS for dark research-lab aesthetic
 st.markdown("""
 <style>
     .block-container {
@@ -59,41 +59,58 @@ st.markdown("""
         display: inline-block;
         margin-bottom: 0.5rem;
     }
+    .status-badge-neutral {
+        background-color: rgba(59, 130, 246, 0.15);
+        color: #60A5FA;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Clean Header
 st.markdown("## Hallucination Risk Engine")
 st.caption("Automated epistemic grounding and statistical uncertainty analyzer powered by OpenAlex scholarly indexing.")
 st.divider()
 
 def analyze_claim(text):
+    text_clean = text.strip()
+    words = text_clean.split()
+    
+    # GUARD 1: Check if input is just numbers or extremely short gibberish / slang
+    if len(words) < 3 or text_clean.isdigit():
+        return None, "Not a Factual Claim", ["Input is too short, composed purely of numbers, or informal text/slang."], None, "general"
+
     score = 60
     reasons = []
     error_type = "Literature Grounded"
     domain_type = "general"
-    lower_text = text.lower()
+    lower_text = text_clean.lower()
     
     # 1. Absolute language / Training Data Bias detector
     if any(phrase in lower_text for phrase in ["single-handedly", "100% proven", "always", "never fails", "undisputed", "first ever"]):
         score -= 25
         error_type = "Training Data Bias"
-        reasons.append("Contains absolute phrasing ('single-handedly', 'first ever') frequently learned from oversimplified web forums.")
+        reasons.append("Contains absolute phrasing frequently learned from oversimplified web forums.")
         
     # 2. Legal citation detector (Mata v. Avianca pattern)
-    if re.search(r"\bv\.\b", text) and any(word in lower_text for word in ["court", "ruling", "case", "precedent", "v.", "judge"]):
+    if re.search(r"\bv\.\b", text_clean) and any(word in lower_text for word in ["court", "ruling", "case", "precedent", "v.", "judge"]):
         score -= 30
         error_type = "Unverified Legal Citation"
         domain_type = "legal"
         reasons.append("Contains legal case citations—one of the highest-risk categories for fabricated model outputs.")
 
-    # 3. Medical / Scientific claim detector
+    # 3. Medical / Scientific check
     if any(word in lower_text for word in ["study", "clinical", "cure", "percent", "%", "researchers", "journal"]):
         domain_type = "science"
 
     # 4. Query OpenAlex Academic Paper API
-    words = [w for w in re.findall(r'\b[A-Za-z]{4,}\b', text) if w.lower() not in ["that", "with", "this", "from", "have", "were", "without", "about", "there", "their"]]
-    search_query = " ".join(words[:5])
+    search_terms = [w for w in re.findall(r'\b[A-Za-z]{4,}\b', text_clean) if w.lower() not in ["that", "with", "this", "from", "have", "were", "without", "about", "there", "their"]]
+    search_query = " ".join(search_terms[:5])
     
     paper_match = None
     if search_query:
@@ -123,7 +140,7 @@ def analyze_claim(text):
     score = max(5, min(98, score))
     return score, error_type, reasons, paper_match, domain_type
 
-def get_verification_steps(domain_type, score):
+def get_verification_steps(domain_type):
     if domain_type == "legal":
         return [
             ("CourtListener (Free Law Project)", "Search the exact case name and docket number to confirm the judicial opinion actually exists."),
@@ -140,7 +157,6 @@ def get_verification_steps(domain_type, score):
             ("Perplexity AI (with Citations)", "Run the prompt through a search-grounded engine and click the numbered source links directly.")
         ]
 
-# Main two-column layout: Left = Input & Analysis, Right = Visual Confidence Bar & Next Steps
 left_col, right_col = st.columns([1.35, 1], gap="large")
 
 with left_col:
@@ -164,50 +180,69 @@ if run_check:
             st.warning("Enter a statement above to run an epistemic check.")
     else:
         confidence, error_type, reasons, paper_match, domain_type = analyze_claim(user_prompt)
-        is_flagged = confidence < threshold
         
-        with left_col:
-            st.markdown("---")
-            st.markdown("#### Diagnostic Breakdown")
-            
-            if is_flagged:
-                st.markdown(f'<div class="status-badge-high">FLAGGED: BELOW {threshold}% THRESHOLD</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="status-badge-low">PASSED: ABOVE {threshold}% THRESHOLD</div>', unsafe_allow_html=True)
-                
-            st.markdown(f"**Classification:** `{error_type}`")
-            for r in reasons:
-                st.markdown(f"- {r}")
-                
-            if paper_match:
-                st.caption(f"Database Log: {paper_match}")
-
-        with right_col:
-            st.markdown("#### Confidence & Verification")
-            
-            # Visual Confidence Bar Card
-            bar_color = "#EF4444" if is_flagged else "#10B981"
-            st.markdown(f"""
-            <div class="metric-card">
-                <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
-                <div style="font-size: 36px; font-weight: 700; color: {bar_color}; margin: 4px 0 12px 0;">{confidence}%</div>
-                <div style="width: 100%; background-color: #1F2937; border-radius: 6px; height: 12px; overflow: hidden;">
-                    <div style="width: {confidence}%; background-color: {bar_color}; height: 100%; border-radius: 6px;"></div>
-                </div>
-                <div style="font-size: 12px; color: #9CA3AF; margin-top: 8px;">Policy Threshold: {threshold}% minimum required</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Recommended Next Steps / Reliable Reasoners
-            st.markdown("#### Recommended Verification Sources")
-            steps = get_verification_steps(domain_type, confidence)
-            for source_name, instruction in steps:
-                st.markdown(f"""
-                <div class="metric-card" style="padding: 1rem;">
-                    <div style="font-weight: 600; color: #F3F4F6; font-size: 14px;">{source_name}</div>
-                    <div style="color: #9CA3AF; font-size: 13px; margin-top: 4px;">{instruction}</div>
+        # Handle non-claim input (numbers, slang, gibberish)
+        if confidence is None:
+            with left_col:
+                st.markdown("---")
+                st.markdown("#### Diagnostic Breakdown")
+                st.markdown(f'<div class="status-badge-neutral">INVALID INPUT TYPE</div>', unsafe_allow_html=True)
+                st.markdown(f"**Classification:** `{error_type}`")
+                for r in reasons:
+                    st.markdown(f"- {r}")
+                st.info("Tip: Enter a full claim, historical statement, or legal citation to test hallucination risks.")
+            with right_col:
+                st.markdown("#### Confidence & Verification")
+                st.markdown("""
+                <div class="metric-card">
+                    <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
+                    <div style="font-size: 36px; font-weight: 700; color: #60A5FA; margin: 4px 0 12px 0;">N/A</div>
+                    <div style="width: 100%; background-color: #1F2937; border-radius: 6px; height: 12px;"></div>
+                    <div style="font-size: 12px; color: #9CA3AF; margin-top: 8px;">Please enter a valid factual claim</div>
                 </div>
                 """, unsafe_allow_html=True)
+        else:
+            is_flagged = confidence < threshold
+            with left_col:
+                st.markdown("---")
+                st.markdown("#### Diagnostic Breakdown")
+                
+                if is_flagged:
+                    st.markdown(f'<div class="status-badge-high">FLAGGED: BELOW {threshold}% THRESHOLD</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div class="status-badge-low">PASSED: ABOVE {threshold}% THRESHOLD</div>', unsafe_allow_html=True)
+                    
+                st.markdown(f"**Classification:** `{error_type}`")
+                for r in reasons:
+                    st.markdown(f"- {r}")
+                    
+                if paper_match:
+                    st.caption(f"Database Log: {paper_match}")
+
+            with right_col:
+                st.markdown("#### Confidence & Verification")
+                
+                bar_color = "#EF4444" if is_flagged else "#10B981"
+                st.markdown(f"""
+                <div class="metric-card">
+                    <div style="font-size: 13px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Grounding Score</div>
+                    <div style="font-size: 36px; font-weight: 700; color: {bar_color}; margin: 4px 0 12px 0;">{confidence}%</div>
+                    <div style="width: 100%; background-color: #1F2937; border-radius: 6px; height: 12px; overflow: hidden;">
+                        <div style="width: {confidence}%; background-color: {bar_color}; height: 100%; border-radius: 6px;"></div>
+                    </div>
+                    <div style="font-size: 12px; color: #9CA3AF; margin-top: 8px;">Policy Threshold: {threshold}% minimum required</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("#### Recommended Verification Sources")
+                steps = get_verification_steps(domain_type)
+                for source_name, instruction in steps:
+                    st.markdown(f"""
+                    <div class="metric-card" style="padding: 1rem;">
+                        <div style="font-weight: 600; color: #F3F4F6; font-size: 14px;">{source_name}</div>
+                        <div style="color: #9CA3AF; font-size: 13px; margin-top: 4px;">{instruction}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 else:
     with right_col:
         st.markdown("#### Confidence & Verification")
