@@ -281,4 +281,4 @@ else:
             
             <div style="font-size: 12px; color: #6B7280; margin-top: 12px;">Run analysis to calculate score</div>
         </div>
-        """, unsafe_allow_html=True) # <-- Added unsafe_allow_html=True here!
+        """, unsafe_allow_html=True)
